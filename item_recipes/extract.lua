@@ -1,40 +1,106 @@
--- code to execute in Factorio
--- ex : using /c command with the code stripped of comments (sed -e "s/-- .*$//g")
--- will produce "anki_item_recipes.txt" script output file to import in Anki
+-- will generate note data file to import into Anki
+-- parameters: Factorio game path
 
-local items = {}
+local factorio_path = ...
 
--- map each item to a list of recipes
-for _, recipe in pairs(game.recipe_prototypes) do
-  for _, product in ipairs(recipe.products) do
-    local recipes = items[product.name]
-    if not recipes then
-      recipes = {}
-      items[product.name] = recipes
+local function list_lua(path)
+  local files = {}
+  local find = io.popen("find \""..path.."\" -type f -name \"*.lua\"")
+
+  local line
+  repeat
+    line = find:read("*l")
+    table.insert(files, line)
+  until not line
+
+  find:close()
+
+  return files
+end
+
+local icons = {} -- map of item name => icon path
+local items = {} -- map of item => list of recipes
+
+-- called at every data:extend(data)
+local function process_data(data)
+  for _, entry in pairs(data) do
+    if entry.type == "recipe" then
+      -- map each item to a list of recipes
+      local recipe_data = entry.normal or entry
+      local ingredients = recipe_data.ingredients or {recipe_data.ingredient}
+      local results = recipe_data.results or {recipe_data.result}
+
+      for _, product in ipairs(results) do
+        local name = type(product) == "table" and (product.name or product[1]) or product
+        local recipes = items[name]
+        if not recipes then
+          recipes = {}
+          items[name] = recipes
+        end
+
+        table.insert(recipes, ingredients)
+      end
+    else -- register icon
+      if entry.icon then
+        local icon = string.gsub(string.gsub(entry.icon, "__base__", "base"), "/", "_")
+        icons[entry.name] = icon
+      end
     end
-
-    table.insert(recipes, recipe)
   end
 end
 
+local env = setmetatable({
+  data = {extend = function(self, data) process_data(data) end}
+}, { __index = function() return function()end end, __newindex = function() end})
+
+local function process_file(path)
+  local f, err = loadfile(path)
+  if f then
+    setfenv(f, env)
+
+    local ok, err = pcall(f)
+    if not ok then
+      print("processing error for \""..path.."\": "..err)
+    end
+  else
+    print("processing error for \""..path.."\": "..err)
+  end
+end
+
+-- process items
+for _, file in ipairs(list_lua(factorio_path.."/data/base/prototypes/item")) do
+  process_file(file)
+end
+for _, file in ipairs(list_lua(factorio_path.."/data/base/prototypes/fluid")) do
+  process_file(file)
+end
+-- process recipes
+for _, file in ipairs(list_lua(factorio_path.."/data/base/prototypes/recipe")) do
+  process_file(file)
+end
+
+-- generate Anki notes data
 local data = {}
 
-local function format_item(name, amount)
-  return "<div class=\"item\"><img src=\"factorio_base_graphics_icons_"..name..".png\" /><span>"..(amount or "").."</span></div>"
+local function format_item(icon, amount)
+  return "<div class=\"item\"><img src=\"factorio_"..icon.."\" /><span>"..(amount or "").."</span></div>"
 end
 
 for name, recipes in pairs(items) do
-  local proto = game.item_prototypes[name] or game.fluid_prototypes[name]
-
   local ldata = {}
   table.insert(ldata, name) -- name
-  table.insert(ldata, format_item(name)) -- icon
+
+  local icon = icons[name] or name..".png"
+  table.insert(ldata, format_item(icon)) -- icon
 
   local recipes_data = {}
   for _, recipe in ipairs(recipes) do
     local ingredients_data = {}
-    for _, ingredient in ipairs(recipe.ingredients) do
-      table.insert(ingredients_data, format_item(ingredient.name, ingredient.amount))
+    for _, ingredient in ipairs(recipe) do
+      local name = type(ingredient) == "table" and (ingredient.name or ingredient[1]) or ingredient
+      local icon = icons[name] or name..".png"
+
+      table.insert(ingredients_data, format_item(icon))
     end
 
     table.insert(recipes_data, "<div>"..table.concat(ingredients_data).."</div>")
@@ -45,4 +111,6 @@ for name, recipes in pairs(items) do
   table.insert(data, table.concat(ldata, ";"))
 end
 
-game.write_file("anki_item_recipes.txt", table.concat(data, "\n"))
+local output = io.open("anki_item_recipes.txt", "w")
+output:write(table.concat(data, "\n"))
+output:close()

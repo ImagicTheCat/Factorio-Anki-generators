@@ -15,9 +15,14 @@ if [[ -z $out_path ]]; then
   exit 1
 fi
 
-cp "$factorio_path/data/core/graphics/slot.png" "$out_path/_factorio_core_graphics_slot.png"
-
 find "$factorio_path/data/base/graphics/icons/" -name "*.png" | while IFS= read -r path; do
-  file=$(basename "$path")
-  cp "$path" "$out_path/factorio_base_graphics_icons_$file"
+  file=$(printf "$path" | sed -e "s|^.*/data/||g" | sed -e "s/\//_/g")
+  cp "$path" "$out_path/factorio_$file"
 done
+
+find "$factorio_path/data/base/graphics/equipment/" -name "*.png" | while IFS= read -r path; do
+  file=$(printf "$path" | sed -e "s|^.*/data/||g" | sed -e "s/\//_/g")
+  cp "$path" "$out_path/factorio_$file"
+done
+
+cp "$factorio_path/data/core/graphics/slot.png" "$out_path/_factorio_core_graphics_slot.png"
