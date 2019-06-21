@@ -1,0 +1,5 @@
+
+= TODO
+
+* add recipe time, tool used and product with amount
+* some icon path fixes

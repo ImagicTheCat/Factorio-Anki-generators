@@ -1,0 +1,57 @@
+= Spec
+
+== Note type
+
+From basic type.
+
+.Fields
+* product_name
+* product_icon
+* recipes
+
+== Card type
+
+=== Style
+
+----
+.card {
+ font-family: arial;
+ font-size: 20px;
+ text-align: center;
+ color: black;
+ background-color: white;
+}
+
+.card .item{
+ background: url('_factorio_core_graphics_slot.png');
+ position: relative;
+ display: inline-block;
+}
+
+.card .item > span{
+ position: absolute;
+ right: 0;
+ bottom: 0;
+ color: white;
+ text-shadow: 1px 1px 2px black;
+ font-weight: bold;
+ font-size: 14px;
+}
+----
+
+=== Recto
+
+----
+{{product_name}}
+<div>{{product_icon}}</div>
+----
+
+=== Verso
+
+----
+{{FrontSide}}
+
+<hr id=answer>
+
+{{recipes}}
+----
