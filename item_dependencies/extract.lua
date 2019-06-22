@@ -1,5 +1,5 @@
 -- will generate note data file to import into Anki
--- parameters: Factorio game path
+-- parameters: <factorio game path>
 
 local factorio_path = ...
 
