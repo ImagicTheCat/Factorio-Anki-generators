@@ -1,7 +1,35 @@
 -- will generate note data file to import into Anki
--- parameters: <factorio game path>
+-- parameters: <factorio game path> <locale>
 
-local factorio_path = ...
+local factorio_path, locale = ...
+if not factorio_path then error("missing factorio_path argument") end
+if not locale then error("missing locale argument") end
+
+local function load_locale(locale)
+  local lang = {}
+
+  local file, err = io.open(factorio_path.."/data/base/locale/"..locale.."/base.cfg", "r")
+  if file then
+    local line
+    repeat
+      line = file:read("*l")
+      if line then
+        line = string.gsub(line, "\r", "")
+        local k,v = string.match(line, "^(.-)=(.*)$")
+        if k then lang[k] = v end
+      end
+    until not line
+
+    file:close()
+  else
+    print("error reading locale \""..locale.."\": "..err)
+  end
+
+  return lang
+end
+
+-- load locale
+local lang = load_locale(locale)
 
 local function list_lua(path)
   local files = {}
@@ -88,7 +116,7 @@ end
 
 for name, recipes in pairs(items) do
   local ldata = {}
-  table.insert(ldata, name) -- name
+  table.insert(ldata, lang[name] or name) -- name
 
   local icon = icons[name] or name..".png"
   table.insert(ldata, format_item(icon)) -- icon
@@ -111,6 +139,6 @@ for name, recipes in pairs(items) do
   table.insert(data, table.concat(ldata, ";"))
 end
 
-local output = io.open("anki_item_recipes.txt", "w")
+local output = io.open("anki_notes.txt", "w")
 output:write(table.concat(data, "\n"))
 output:close()
