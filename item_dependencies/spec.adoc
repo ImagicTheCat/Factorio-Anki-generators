@@ -7,7 +7,7 @@ Factorio item dependencies deck.
 
 Generated using https://github.com/ImagicTheCat/Factorio-Anki-generators (other locales of the game can be used).
 
-If icons are too small, the card type can be modified with a CSS scale property on the item class.
+If icons are too small, the card type style can be modified with CSS properties on the item class.
 ----
 
 == Note type
